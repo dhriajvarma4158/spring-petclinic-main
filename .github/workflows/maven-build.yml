@@ -1,10 +1,5 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+name: Build and Push Docker Image
 
-
-name: Java CI with Maven
-
-# Trigger this workflow on push or pull request to the main branch
 on:
   push:
     branches:
@@ -15,34 +10,39 @@ on:
 
 jobs:
   build:
-    # The type of runner to use
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        java-version: ['17']  # Adjust the Java version if needed
-
     steps:
-      # Step 1: Checkout the code
+      # Step 1: Check out the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Java JDK
-      - name: Set up JDK ${{ matrix.java-version }}
+      # Step 2: Set up Java JDK (if needed for Maven to build the project)
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.java-version }}
-          distribution: 'temurin'  # Or 'adopt' if you're using AdoptOpenJDK
-          cache: maven
+          java-version: '17'
+          distribution: 'temurin'
 
-      # Step 3: Build the project using Maven
-      - name: Build with Maven
-        run: mvn clean package
+      # Step 3: Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t dhirajvarma4158/spring-petclinic-main:${{ github.sha }} .
 
-      # Step 4: Upload the JAR/WAR file as an artifact
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+      # Step 4: Log in to Docker Hub (or GitHub Container Registry)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
         with:
-          name: build-artifact
-          path: target/*.jar  # Change this to `*.war` if your project produces WAR files
+          username: ${{ secrets.DOCKER_USERNAME }}  # Add your Docker Hub username in GitHub Secrets
+          password: ${{ secrets.DOCKER_PASSWORD }}  # Add your Docker Hub password in GitHub Secrets
 
+      # Step 5: Push the Docker image to Docker Hub
+      - name: Push Docker image
+        run: |
+          docker push dhirajvarma4158/spring-petclinic-main:${{ github.sha }}
+
+      # Step 6 (Optional): Tag the image with the 'latest' tag and push it
+      - name: Tag and push Docker image as 'latest'
+        run: |
+          docker tag dhirajvarma4158/spring-petclinic-main:${{ github.sha }} dhirajvarma4158/spring-petclinic-main:latest
+          docker push dhirajvarma4158/spring-petclinic-main:latest
