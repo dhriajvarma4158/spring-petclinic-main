@@ -16,7 +16,7 @@ jobs:
       contents: write  # Ensure write access to repository contents
 
     steps:
-      # Step 1: Checkout the repository
+      # Step 1: Check out the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -50,15 +50,15 @@ jobs:
           docker tag dhirajvarma4158/spring-petclinic-main:${{ github.sha }} dhirajvarma4158/spring-petclinic-main:latest
           docker push dhirajvarma4158/spring-petclinic-main:latest
 
-      # Step 7: Create a release in GitHub
+      # Step 7: Create a valid GitHub tag and release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.sha }}
-          release_name: "Release ${{ github.sha }}"
+          tag_name: "v1.0.0-${{ github.run_number }}"  # Create a valid tag name
+          release_name: "Release v1.0.0-${{ github.run_number }}"  # Create a valid release name
           draft: false
           prerelease: false
 
