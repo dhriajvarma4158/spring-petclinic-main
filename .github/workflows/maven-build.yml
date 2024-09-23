@@ -4,27 +4,45 @@
 
 name: Java CI with Maven
 
+# Trigger this workflow on push or pull request to the main branch
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
-
+    # The type of runner to use
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        java: [ '17' ]
+        java-version: ['17']  # Adjust the Java version if needed
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK ${{matrix.java}}
+      # Step 1: Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Java JDK
+      - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
-          java-version: ${{matrix.java}}
-          distribution: 'adopt'
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'  # Or 'adopt' if you're using AdoptOpenJDK
           cache: maven
-      - name: Build with Maven Wrapper
-        run: ./mvnw -B package
+
+      # Step 3: Build the project using Maven
+      - name: Build with Maven
+        run: mvn clean package
+
+      # Step 4: Upload the JAR/WAR file as an artifact
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifact
+          path: target/*.jar  # Change this to `*.war` if your project produces WAR files
+
