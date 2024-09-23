@@ -1,12 +1,15 @@
-name: Build and Push Docker Image with JAR Release
+name: Build and Tag Docker Image with Branch-Specific Tagging
 
 on:
   push:
     branches:
       - master
+      - feature/*  # Tracks feature branches
+
   pull_request:
     branches:
       - master
+      - feature/*  # Tracks PRs to both master and feature branches
 
 jobs:
   build:
@@ -32,41 +35,54 @@ jobs:
       - name: Build with Maven
         run: mvn clean package
 
-      # Step 4: Build Docker image
-      - name: Build Docker image
-        run: docker build -t dhirajvarma4158/spring-petclinic-main:${{ github.sha }} .
+      # Step 4: Determine Tag Name Based on Branch
+      - name: Set the Tag Name
+        id: set_tag_name
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "::set-output name=tag_name::v1.0.0-${{ github.run_number }}"
+          elif [[ "${{ github.ref }}" == refs/heads/main ]]; then
+            echo "::set-output name=tag_name::v1.0.0-${{ github.run_number }}"
+          else
+            BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+            echo "::set-output name=tag_name::${BRANCH_NAME}-${{ github.sha }}"
+          fi
 
-      # Step 5: Log in to Docker Hub
+      # Step 5: Build Docker image
+      - name: Build Docker image
+        run: docker build -t dhirajvarma4158/spring-petclinic-main:${{ steps.set_tag_name.outputs.tag_name }} .
+
+      # Step 6: Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 6: Push Docker image to Docker Hub
+      # Step 7: Push Docker image to Docker Hub
       - name: Push Docker image
         run: |
-          docker push dhirajvarma4158/spring-petclinic-main:${{ github.sha }}
-          docker tag dhirajvarma4158/spring-petclinic-main:${{ github.sha }} dhirajvarma4158/spring-petclinic-main:latest
+          docker push dhirajvarma4158/spring-petclinic-main:${{ steps.set_tag_name.outputs.tag_name }}
+          docker tag dhirajvarma4158/spring-petclinic-main:${{ steps.set_tag_name.outputs.tag_name }} dhirajvarma4158/spring-petclinic-main:latest
           docker push dhirajvarma4158/spring-petclinic-main:latest
 
-      # Step 7: Create a release in GitHub
+      # Step 8: Create a release in GitHub
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: "v1.0.0-${{ github.run_number }}"  # Create a valid tag name
-          release_name: "Release v1.0.0-${{ github.run_number }}"  # Create a valid release name
+          tag_name: ${{ steps.set_tag_name.outputs.tag_name }}
+          release_name: "Release ${{ steps.set_tag_name.outputs.tag_name }}"
           draft: false
           prerelease: false
 
-      # Step 8: Upload the final JAR file to GitHub Release
+      # Step 9: Upload JAR file to GitHub Release
       - name: Upload JAR to GitHub Release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/spring-petclinic-3.3.0-SNAPSHOT.jar  # Reference the actual JAR name
+          asset_path: target/*.jar
           asset_name: spring-petclinic-main.jar
           asset_content_type: application/java-archive
