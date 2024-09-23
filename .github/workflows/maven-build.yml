@@ -62,11 +62,11 @@ jobs:
           draft: false
           prerelease: false
 
-      # Step 8: Upload JAR file to GitHub Release
+      # Step 8: Upload the final JAR file to GitHub Release
       - name: Upload JAR to GitHub Release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/*.jar  # Adjust to the actual JAR file if necessary
+          asset_path: target/spring-petclinic-3.3.0-SNAPSHOT.jar  # Reference the actual JAR name
           asset_name: spring-petclinic-main.jar
           asset_content_type: application/java-archive
