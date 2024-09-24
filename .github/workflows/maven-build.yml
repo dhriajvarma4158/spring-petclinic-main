@@ -79,6 +79,12 @@ jobs:
           draft: false
           prerelease: false
 
+      # Step 8.5: Debug the upload_url (optional, for troubleshooting)
+      - name: Debug upload_url
+        if: github.ref == 'refs/heads/master'
+        run: |
+          echo "Upload URL: ${{ steps.create_release.outputs.upload_url }}"
+
       # Step 9: Upload JAR file to GitHub Release (only for master branch)
       - name: Upload JAR to GitHub Release
         uses: actions/upload-release-asset@v1
@@ -87,4 +93,3 @@ jobs:
           asset_path: target/spring-petclinic-*.jar  # Use wildcard to match JAR
           asset_name: spring-petclinic-main.jar
           asset_content_type: application/java-archive
-
