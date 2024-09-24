@@ -81,10 +81,9 @@ jobs:
 
       # Step 9: Upload JAR file to GitHub Release (only for master branch)
       - name: Upload JAR to GitHub Release
-        if: github.ref == 'refs/heads/master'  # Only upload to release on the master branch
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/*.jar
+          asset_path: target/spring-petclinic-*.jar  # Use wildcard to match JAR
           asset_name: spring-petclinic-main.jar
           asset_content_type: application/java-archive
