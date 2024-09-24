@@ -3,13 +3,12 @@ name: Build and Tag Docker Image with Branch-Specific Tagging
 on:
   push:
     branches:
-      - master
-      - feature/*  # Tracks feature branches
+      - master  # Tracks only the master branch
+      - '*'     # Tracks any other branches you may work with
 
   pull_request:
     branches:
-      - master
-      - feature/*  # Tracks PRs to both master and feature branches
+      - master  # Tracks PRs to master
 
 jobs:
   build:
@@ -41,33 +40,35 @@ jobs:
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
             echo "::set-output name=tag_name::v1.0.0-${{ github.run_number }}"
-          elif [[ "${{ github.ref }}" == refs/heads/main ]]; then
-            echo "::set-output name=tag_name::v1.0.0-${{ github.run_number }}"
           else
             BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
             echo "::set-output name=tag_name::${BRANCH_NAME}-${{ github.sha }}"
           fi
 
-      # Step 5: Build Docker image
+      # Step 5: Build Docker image (skip for PRs)
       - name: Build Docker image
+        if: github.event_name != 'pull_request'  # Skip this step in PRs
         run: docker build -t dhirajvarma4158/spring-petclinic-main:${{ steps.set_tag_name.outputs.tag_name }} .
 
-      # Step 6: Log in to Docker Hub
+      # Step 6: Log in to Docker Hub (skip for PRs)
       - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'  # Skip this step in PRs
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 7: Push Docker image to Docker Hub
+      # Step 7: Push Docker image to Docker Hub (skip for PRs)
       - name: Push Docker image
+        if: github.event_name != 'pull_request'  # Skip this step in PRs
         run: |
           docker push dhirajvarma4158/spring-petclinic-main:${{ steps.set_tag_name.outputs.tag_name }}
           docker tag dhirajvarma4158/spring-petclinic-main:${{ steps.set_tag_name.outputs.tag_name }} dhirajvarma4158/spring-petclinic-main:latest
           docker push dhirajvarma4158/spring-petclinic-main:latest
 
-      # Step 8: Create a release in GitHub
+      # Step 8: Create a release in GitHub (only for master branch)
       - name: Create GitHub Release
+        if: github.ref == 'refs/heads/master'  # Only create a release on the master branch
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -78,8 +79,9 @@ jobs:
           draft: false
           prerelease: false
 
-      # Step 9: Upload JAR file to GitHub Release
+      # Step 9: Upload JAR file to GitHub Release (only for master branch)
       - name: Upload JAR to GitHub Release
+        if: github.ref == 'refs/heads/master'  # Only upload to release on the master branch
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
